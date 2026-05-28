@@ -35,8 +35,8 @@ No single pipeline stage is universally helpful — each of seed+ICP, render-com
 
 ## Read more
 
-- 📄 **[Full report (PDF)](report/MV_Project3_FinalReport.pdf)**
-- 🔬 [Methodology](docs/methodology.md) · [Results](docs/results.md) · [References](docs/references.md)
+- **[Full report (PDF)](report/MV_Project3_FinalReport.pdf)**
+- [Methodology](docs/methodology.md) · [Results](docs/results.md) · [References](docs/references.md)
 
 ## A note on code
 
