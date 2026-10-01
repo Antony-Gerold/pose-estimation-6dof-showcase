@@ -1,51 +1,53 @@
 # 6DOF Pose Estimation for Warehouse Object Picking
 
-> **A classical RGB-D pipeline that recovers object pose without deep learning — and a diagnosis of exactly why fusing two weak modalities beats either alone.**
+Two classical pipelines that recover the 3D position and orientation of a known object on a warehouse shelf from RGB-D data, without deep learning. Evaluated on the Rutgers APC RGB-D dataset (24 objects, 432 images each: 12 shelf bins × 36 viewpoints).
 
-Given a known 3D model and a dashcam-style RGB-D image of an object in a warehouse bin, recover its full 6-degree-of-freedom pose (rotation + translation). Evaluated on the Rutgers APC dataset (24 objects, 432 images each).
+**V1 (depth only): 17/24 objects acceptable. V2 (PnP + depth fusion): 21/24 acceptable (T < 25 mm, R < 15°). Per-image success about 2% to about 5% (2.8×).** ENGG\*6100 Machine Vision, University of Guelph.
 
-**V1 (depth only): 17 / 24 acceptable → V2 (PnP + depth fusion): 21 / 24 acceptable. Per-image robot-grade rate 1.8 % → 5.0 %. Graded 9.5 / 10** (ENGG\*6100 Machine Vision, University of Guelph).
+![3D pose overlay and per-image scatter for 5 objects](report/figures/fig5_combined.png)
 
-![Combined results](report/figures/fig5_combined.png)
+*3D pose overlay and per-image scatter for five objects (Figure 5 of the report). Each scatter dot is one of about 432 images.*
 
 ---
 
 ## Results at a glance
 
-| Pipeline | Objects acceptable (T<25mm, R<15°) | Per-image robot rate |
+| Pipeline | Objects acceptable (T < 25 mm, R < 15°) | Per-image success |
 |---|---|---|
-| V1 — depth only | 17 / 24 (71 %) | 1.8 % |
-| **V2 — PnP + depth fusion** | **21 / 24 (88 %)** | **5.0 %** |
+| V1, depth only | 17/24 (71%) | about 2% |
+| **V2, PnP + depth fusion** | **21/24 (88%)** | **about 5%** |
 
-**5 failures rescued, 1 regression** between V1 and V2.
+From V1 to V2: 17 objects, minus 1 regression (kyjen eggs), plus 5 rescued, gives 21.
 
-## The key insight: modalities are complementary, not redundant
+## The key insight: RGB finds where, depth finds how
 
-![ORB / PnP analysis](report/figures/fig3_orb.png)
+![ORB on depth vs ORB on RGB](report/figures/fig3_orb.png)
 
-A pure-PnP experiment gave **median translation error 3 mm** (excellent) but **median rotation error 166°** (essentially random) — because ORB feature matches cluster spatially, constraining position but not orientation. Depth-render is the opposite: good rotation, bad translation when seeds miss.
+*ORB on depth (1398 keypoints, 7 matches, fails) vs ORB on RGB (1744 keypoints, 16 matches, works), with model texture keypoints and RGB-to-texture correspondences (Figure 3 of the report).*
 
-V2 fuses them: **PnP for translation, depth-render for rotation, ICP to refine, and a confidence-gated "smart flip" stage** that resolves the 180° depth ambiguity without breaking already-correct poses.
+PnP from ORB features gave a median translation error of 3 mm but a median rotation error of 166°. The 16 sparse correspondences cluster on one face of the object, so the EPnP solver cannot constrain rotation. Depth silhouettes encode 3D shape, so depth render-and-compare handles rotation.
 
-## The ablation finding
+V2 fuses them: PnP translation, render-and-compare rotation anchored at that translation, ICP refinement, and a confidence-gated "smart flip" that only flips when confidence is below 0.3 and the improvement is above 5%.
 
-![Ablation](report/figures/fig4_ablation.png)
+## How the stages improve a pose
 
-No single pipeline stage is universally helpful — each of seed+ICP, render-compare, ICP-refine, and flip helps ~50 % of images and hurts the other ~50 %. They rescue *different* images, and multi-view voting across 432 frames selects where the right stages aligned. This is why the pipeline is structurally tied to having many viewpoints.
+![Champion spark plug through four pipeline stages](report/figures/fig4_ablation.png)
+
+*Champion spark plug through the four pipeline stages, top view (Figure 4 of the report). Seed + ICP: T = 130 mm, R = 87°. Render-compare: R drops to 20°. ICP refinement: T = 5 mm, R = 9°. Flip correction: T = 9 mm, R = 2°.*
 
 ## Read more
 
 - **[Full report (PDF)](report/MV_Project3_FinalReport.pdf)**
-- [Methodology](docs/methodology.md) · [Results](docs/results.md) · [References](docs/references.md)
+- [Methodology](docs/methodology.md), [Results](docs/results.md), [References](docs/references.md)
 
 ## A note on code
 
-Solution code is kept private in line with course academic-integrity policy. I'm happy to walk through the implementation and design decisions with anyone interested — just reach out.
+Solution code is kept private in line with course academic-integrity policy. I'm happy to walk through the implementation and design decisions with anyone interested.
 
 ## Author
 
-**Antony Gerold Arockiasamy** · MEng Computer Engineering, University of Guelph · ENGG\*6100 Machine Vision.
+**Antony Gerold Arockiasamy**, ENGG\*6100 Machine Vision, University of Guelph.
 
 ## License
 
-Documentation and figures: MIT — see [LICENSE](LICENSE).
+Documentation and figures: MIT, see [LICENSE](LICENSE).
